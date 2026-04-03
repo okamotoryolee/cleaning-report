@@ -847,7 +847,7 @@ function generateReport() {
   if (data.date) { var d=new Date(data.date), days=['日','月','火','水','木','金','土']; dateStr=d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日（'+days[d.getDay()]+'）'; }
 
   var hasReports=data.damageReport||data.bikeReport||data.otherReport;
-  var totalH=700;
+  var totalH=2000; // 全項目が収まる十分な高さを初期確保（後ほどぴったりにトリミング）
   if (hasReports) {
     ctx.font = '16px "Noto Sans JP", sans-serif'; 
     if (data.damageReport) totalH+=40+wrapText(ctx,data.damageReport,W-100,16).length*28;
