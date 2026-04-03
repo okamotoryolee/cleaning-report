@@ -762,7 +762,9 @@ function showDetail(idx) {
     if (h.otherReport) html += '<div style="font-size:14px;color:var(--text-light);margin-top:16px;margin-bottom:6px;font-weight:600;">その他</div><div class="detail-note">' + esc(h.otherReport) + '</div>';
     html += '</div>';
   }
-  html += '</div>';
+  html += '</div><div class="overlay-actions">' +
+          '<button class="btn btn-primary" onclick="generateReportFromHistory(' + idx + ')" style="font-size:16px;">📸 再度画像化して送る</button>' +
+          '</div>';
   document.getElementById('detailContent').innerHTML = html;
   document.getElementById('detailOverlay').classList.add('show');
 }
@@ -836,13 +838,12 @@ function resetForm() {
   showToast('リセットしました');
 }
 
-function generateReport() {
+function drawDataToCanvas(data) {
   var canvas=document.getElementById('reportCanvas'), ctx=canvas.getContext('2d'), W=800;
   // デバイスのピクセル比率を考慮してくっきり描画する設定
   const scale = 2; // より高解像度で生成
   canvas.width = W * scale;
   
-  var data=gatherFormData();
   var dateStr='';
   if (data.date) { var d=new Date(data.date), days=['日','月','火','水','木','金','土']; dateStr=d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日（'+days[d.getDay()]+'）'; }
 
@@ -889,14 +890,14 @@ function generateReport() {
   y+=10; dL(M,y,W-M,y,'#2D6A4F',3); y+=30;
 
   // 毎回の業務
-  var rc=regularTaskDefs.filter(function(t){return data.regular[t.id];}).length;
+  var rc=regularTaskDefs.filter(function(t){return data.regular && data.regular[t.id];}).length;
   dR(M,y,cW,44,'#E9F5F0', 8); 
   dT('✅ 毎回の業務',M+16,y+30,18,'#1B4332','left','bold'); 
   dT(rc+' / '+regularTaskDefs.length,W-M-16,y+30,16,'#6B7280','right'); 
   y+=60;
   
   regularTaskDefs.forEach(function(t){
-      var ck=data.regular[t.id];
+      var ck=data.regular && data.regular[t.id];
       // Checkbox box
       dR(M+16, y+2, 22, 22, ck?'#2D6A4F':'#F0F0F0', 4);
       if(ck) { dT('✓', M+20, y+19, 18, '#FFF', 'left', 'bold'); }
@@ -908,14 +909,14 @@ function generateReport() {
   y+=10; dL(M,y,W-M,y,'#2D6A4F',3); y+=30;
 
   // マンスリー業務
-  var mc=monthlyTaskDefs.filter(function(t){return data.monthly[t.id];}).length;
+  var mc=monthlyTaskDefs.filter(function(t){return data.monthly && data.monthly[t.id];}).length;
   dR(M,y,cW,44,'#E9F5F0', 8); 
   dT('📆 マンスリー業務',M+16,y+30,18,'#1B4332','left','bold'); 
   dT(mc+' / '+monthlyTaskDefs.length,W-M-16,y+30,16,'#6B7280','right'); 
   y+=60;
   
   monthlyTaskDefs.forEach(function(t){
-      var ck=data.monthly[t.id];
+      var ck=data.monthly && data.monthly[t.id];
       dR(M+16, y+2, 22, 22, ck?'#2D6A4F':'#F0F0F0', 4);
       if(ck) { dT('✓', M+20, y+19, 18, '#FFF', 'left', 'bold'); }
 
@@ -945,7 +946,10 @@ function generateReport() {
     });
   }
   y+=20;dL(M,y,W-M,y,'#E5E1DB');y+=30;
-  dT('作成日時: '+new Date().toLocaleString('ja-JP'),W/2,y+10,14,'#9CA3AF','center');
+  
+  // 履歴からの生成時は savedAt を利用。新規作成時は現在時刻を利用
+  var savedDate = data.savedAt ? new Date(data.savedAt) : new Date();
+  dT('作成日時: '+savedDate.toLocaleString('ja-JP'),W/2,y+10,14,'#9CA3AF','center');
   y+=40;
   
   // 最終的な高さを調整
@@ -954,12 +958,26 @@ function generateReport() {
   ctx.putImageData(finalImg,0,0);
 
   // プレビュー用の画像タグに書き出し（長押し保存できるようにするため）
-  document.getElementById('reportImage').src = canvas.toDataURL('image/png');
+  var reportImg = document.getElementById('reportImage');
+  reportImg.src = canvas.toDataURL('image/png');
+  reportImg.dataset.date = data.date || '';
+}
 
+function generateReport() {
+  var data=gatherFormData();
+  drawDataToCanvas(data);
   history.unshift(Object.assign({},data,{savedAt:new Date().toISOString()}));
   saveHistoryStorage();
   clearDraftStorage();
   document.getElementById('draftBanner').classList.remove('show');
+  document.getElementById('previewOverlay').classList.add('show');
+}
+
+function generateReportFromHistory(idx) {
+  var data = history[idx];
+  if(!data) return;
+  closeDetail(); // 履歴詳細モーダルを閉じる
+  drawDataToCanvas(data);
   document.getElementById('previewOverlay').classList.add('show');
 }
 
@@ -974,8 +992,9 @@ function dataURLtoFile(dataurl, filename) {
 }
 
 async function shareReport(){
-  var dv=document.getElementById('reportDate').value;
-  var filename='業務報告_'+(dv||new Date().toISOString().slice(0,10)).replace(/-/g,'')+'.png';
+  var dv=document.getElementById('reportImage').dataset.date;
+  if (!dv) dv = new Date().toISOString().slice(0,10);
+  var filename='業務報告_'+dv.replace(/-/g,'')+'.png';
   var imgStr=document.getElementById('reportImage').src;
   
   if (navigator.canShare) {
