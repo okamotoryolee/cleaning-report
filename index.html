@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>業務報告シート</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #F5F3EF;
+    --card: #FFFFFF;
+    --primary: #2D6A4F;
+    --primary-light: #D8F3DC;
+    --primary-dark: #1B4332;
+    --accent: #E76F51;
+    --text: #2B2B2B;
+    --text-light: #6B7280;
+    --border: #E5E1DB;
+    --shadow: 0 4px 16px rgba(0,0,0,0.08); /* 影を強調 */
+    --radius: 16px; /* 丸みを少し強める */
+    --danger: #DC3545;
+    --danger-light: #FFF0F0;
+    --line-color: #06C755; /* LINEの色 */
+  }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 0 0 120px 0;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .app-header {
+    background: var(--primary);
+    color: white;
+    padding: calc(18px + env(safe-area-inset-top)) 20px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(45,106,79,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-left h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.04em; }
+  .header-left .subtitle { font-size: 13px; opacity: 0.9; margin-top: 2px; }
+  .header-right { display: flex; gap: 8px; }
+  .header-btn {
+    position: relative;
+    width: 46px; height: 46px; /* スマホ用に少し拡大 */
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .header-btn:active { transform: scale(0.92); }
+  .header-btn .badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .draft-indicator {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: #FFF8E1;
+    border-bottom: 1px solid #FFE082;
+    font-size: 14px;
+    color: #F57F17;
+    font-weight: 500;
+  }
+  .draft-indicator.show { display: flex; }
+  .draft-indicator button {
+    margin-left: auto;
+    padding: 6px 14px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .section {
+    margin: 16px 12px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .section-title {
+    background: var(--primary);
+    color: white;
+    padding: 14px 16px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .section-body { padding: 18px 16px; }
+
+  .field-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .field-row label {
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    min-width: 80px;
+    color: var(--text-light);
+  }
+  .field-row input, .field-row select {
+    flex: 1;
+    padding: 14px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: inherit;
+    background: #FAFAFA;
+    color: var(--text);
+    transition: border-color 0.2s;
+  }
+  .field-row input:focus, .field-row select:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+  }
+
+  .weather-options { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+  .weather-btn {
+    flex: 1;
+    min-width: 60px;
+    padding: 12px 6px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: #FAFAFA;
+    font-size: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .weather-btn.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    transform: scale(1.05);
+  }
+  .weather-label { display: block; font-size: 12px; margin-top: 4px; font-weight: 500;}
+
+  .now-btn {
+    padding: 12px 16px;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border: 1.5px solid var(--primary);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-item:active { background: #F0F0F0; }
+  .check-box {
+    width: 40px; height: 40px;
+    border: 2.5px solid var(--border);
+    border-radius: 12px;
+    margin-right: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 22px;
+  }
+  .check-item.checked .check-box {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+  }
+  .check-label { font-size: 16px; flex: 1; line-height: 1.4; font-weight: 500;}
+  .check-detail { font-size: 13px; color: var(--text-light); margin-top: 4px; }
+
+  .progress-bar { display: flex; align-items: center; gap: 10px; padding: 12px 16px 0; }
+  .progress-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--primary); border-radius: 4px; transition: width 0.3s ease; }
+  .progress-text { font-size: 14px; color: var(--text-light); white-space: nowrap; font-weight: 500;}
+
+  .report-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: inherit;
+    resize: vertical;
+    background: #FAFAFA;
+    color: var(--text);
+    transition: border-color 0.2s;
+  }
+  .report-textarea:focus { outline: none; border-color: var(--primary); background: white; }
+  .textarea-label { font-size: 14px; color: var(--text-light); margin-bottom: 8px; font-weight: 600; }
+  .textarea-group { margin-bottom: 20px; }
+  .textarea-group:last-child { margin-bottom: 0; }
+
+  .bottom-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 16px 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    background: white;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    z-index: 100;
+    display: flex;
+    gap: 12px;
+  }
+  .btn {
+    flex: 1;
+    padding: 18px 16px;
+    border: none;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.03em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(45,106,79,0.3);}
+  .btn-secondary { background: var(--border); color: var(--text); flex: 0.4; }
+  
+  .btn-line { background: var(--line-color); color: white; box-shadow: 0 4px 12px rgba(6,199,85,0.3);}
+  .btn-download { background: #f8f9fa; border: 2px solid var(--border); color: var(--text); }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .overlay.show { display: flex; }
+  .overlay-content {
+    background: white;
+    border-radius: var(--radius);
+    max-height: 90vh;
+    overflow-y: auto;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+  }
+  .overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: white;
+    border-radius: var(--radius) var(--radius) 0 0;
+    z-index: 1;
+  }
+  .overlay-header h2 { font-size: 18px; }
+  .close-btn {
+    width: 40px; height: 40px;
+    border: none; background: var(--bg);
+    border-radius: 50%; font-size: 22px;
+    cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .preview-container {
+      background: #f0f0f0;
+      padding: 16px;
+      overflow-y: auto;
+      text-align: center;
+  }
+  .overlay-actions {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px solid var(--border);
+    position: sticky;
+    bottom: 0;
+    background: white;
+  }
+  #reportCanvas { width: 100%; display: block; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);}
+
+  .history-empty { text-align: center; padding: 80px 20px; color: var(--text-light); }
+  .history-empty .empty-icon { font-size: 56px; margin-bottom: 16px; }
+  .history-empty p { font-size: 16px; font-weight: 500;}
+
+  .history-card {
+    margin: 16px 12px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .history-card:active { transform: scale(0.98); }
+  .history-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-date { font-size: 16px; font-weight: 700; color: var(--primary-dark); }
+  .history-weather { font-size: 24px; }
+  .history-card-body {
+    padding: 16px 20px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .history-stat { display: flex; flex-direction: column; align-items: center; }
+  .history-stat-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+  .history-stat-label { font-size: 12px; color: var(--text-light); font-weight: 500;}
+  .history-time { margin-left: auto; font-size: 14px; color: var(--text-light); font-weight: 500;}
+  .history-card-footer {
+    padding: 12px 20px;
+    background: #FAFAFA;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .history-card-footer .has-notes { font-size: 13px; color: var(--accent); font-weight: 600; }
+  .delete-btn {
+    padding: 8px 16px;
+    background: white;
+    border: 2px solid var(--danger);
+    color: var(--danger);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .delete-btn:active { background: var(--danger-light); }
+
+  .detail-section { padding: 20px; border-bottom: 1px solid var(--border);}
+  .detail-section:last-child { border-bottom: none; }
+  .detail-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--primary-light);
+  }
+  .detail-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; }
+  .detail-row .label { color: var(--text-light); }
+  .detail-row .value { font-weight: 600; }
+  .detail-task { padding: 8px 0; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+  .detail-task .icon { font-size: 18px; }
+  .detail-note {
+    padding: 12px 16px;
+    background: #FAFAFA;
+    border-radius: 10px;
+    font-size: 14px;
+    margin-top: 8px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    border: 1px solid var(--border);
+  }
+
+  .toast {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: rgba(27, 67, 50, 0.9);
+    color: white;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    z-index: 300;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .month-header {
+    padding: 16px 20px 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-light);
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header" id="appHeader">
+  <div class="header-left">
+    <h1 id="headerTitle">📋 業務報告シート</h1>
+    <div class="subtitle" id="headerSubtitle">マンション清掃管理</div>
+  </div>
+  <div class="header-right" id="headerActions">
+    <button class="header-btn" onclick="showHistory()" id="historyBtn" title="履歴">
+      📁
+      <span class="badge" id="historyBadge" style="display:none">0</span>
+    </button>
+  </div>
+</div>
+
+<div class="draft-indicator" id="draftBanner">
+  ✏️ 下書きがあります
+  <button onclick="clearDraft()">破棄</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="view active" id="formView">
+  <div class="section">
+    <div class="section-title">📅 基本情報</div>
+    <div class="section-body">
+      <div class="field-row">
+        <label>日付</label>
+        <input type="date" id="reportDate" onchange="saveDraft()">
+      </div>
+      <div class="field-row">
+        <label>天候</label>
+        <div class="weather-options">
+          <div class="weather-btn" data-weather="晴れ" onclick="selectWeather(this)">☀️<span class="weather-label">晴れ</span></div>
+          <div class="weather-btn" data-weather="曇り" onclick="selectWeather(this)">☁️<span class="weather-label">曇り</span></div>
+          <div class="weather-btn" data-weather="雨" onclick="selectWeather(this)">🌧️<span class="weather-label">雨</span></div>
+          <div class="weather-btn" data-weather="雪" onclick="selectWeather(this)">❄️<span class="weather-label">雪</span></div>
+        </div>
+      </div>
+      <div class="field-row">
+        <label>報告者</label>
+        <input type="text" id="reporter" placeholder="名前を入力" oninput="saveDraft()">
+      </div>
+      <div class="field-row">
+        <label>開始時刻</label>
+        <input type="time" id="startTime" onchange="saveDraft()">
+        <button class="now-btn" onclick="setNow('startTime')">現在</button>
+      </div>
+      <div class="field-row">
+        <label>終了時刻</label>
+        <input type="time" id="endTime" onchange="saveDraft()">
+        <button class="now-btn" onclick="setNow('endTime')">現在</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">✅ 毎回の業務</div>
+    <div class="progress-bar">
+      <div class="progress-track"><div class="progress-fill" id="regularProgress" style="width:0%"></div></div>
+      <div class="progress-text" id="regularCount">0/11</div>
+    </div>
+    <div class="section-body" id="regularTasks"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📆 マンスリー業務</div>
+    <div class="progress-bar">
+      <div class="progress-track"><div class="progress-fill" id="monthlyProgress" style="width:0%"></div></div>
+      <div class="progress-text" id="monthlyCount">0/8</div>
+    </div>
+    <div class="section-body" id="monthlyTasks"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📝 報告事項</div>
+    <div class="section-body">
+      <div class="textarea-group">
+        <div class="textarea-label">特別な汚れ・破損とその修復の報告</div>
+        <textarea class="report-textarea" id="damageReport" placeholder="特になければ空欄でOK" oninput="saveDraft()"></textarea>
+      </div>
+      <div class="textarea-group">
+        <div class="textarea-label">駐輪違反車の状況と処置（違反車 特徴・ナンバー）</div>
+        <textarea class="report-textarea" id="bikeReport" placeholder="特になければ空欄でOK" oninput="saveDraft()"></textarea>
+      </div>
+      <div class="textarea-group">
+        <div class="textarea-label">その他</div>
+        <textarea class="report-textarea" id="otherReport" placeholder="特になければ空欄でOK" oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="historyView">
+  <div id="historyList"></div>
+</div>
+
+<div class="bottom-bar" id="formBottomBar">
+  <button class="btn btn-secondary" onclick="resetForm()">リセット</button>
+  <button class="btn btn-primary" onclick="generateReport()">📄 報告書を作成</button>
+</div>
+<div class="bottom-bar" id="historyBottomBar" style="display:none">
+  <button class="btn btn-primary" onclick="showForm()">✏️ 新しい報告を作成</button>
+</div>
+
+<div class="overlay" id="previewOverlay">
+  <div class="overlay-content">
+    <div class="overlay-header">
+      <h2>プレビュー</h2>
+      <button class="close-btn" onclick="closePreview()">✕</button>
+    </div>
+    <div class="preview-container">
+      <canvas id="reportCanvas"></canvas>
+      <p style="margin-top: 12px; font-size: 13px; color: var(--text-light);">※この画像が保存されます</p>
+    </div>
+    <div class="overlay-actions">
+      <button class="btn btn-download" onclick="downloadReport()">📥 1. 画像をスマホに保存</button>
+      <button class="btn btn-line" onclick="openLine()">💬 2. LINEを開いて送る</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="detailOverlay">
+  <div class="overlay-content" id="detailContent" style="max-width: 500px; max-height: 85vh;"></div>
+</div>
+
+<script>
+const regularTaskDefs = [
+  { id: 'r1', label: 'ゴミ置場内外の清掃', detail: '整理・水洗・はき' },
+  { id: 'r2', label: '1Fエントランスホール清掃', detail: 'はき・汚れ取り' },
+  { id: 'r3', label: '各階 廊下・階段の清掃', detail: 'はき・汚れ取り' },
+  { id: 'r4', label: '内側壁面の汚れ取り', detail: 'ふき・汚れ取り・水洗い' },
+  { id: 'r5', label: 'メイルボックスの整理・清掃', detail: '整理・ふき' },
+  { id: 'r6', label: 'ゴミ箱のゴミ出し・整理', detail: 'ゴミ出し' },
+  { id: 'r7', label: '各階手すりのふき掃除', detail: 'ふき・汚れ取り' },
+  { id: 'r8', label: '植木の水やり（両側・木も）', detail: '水やり' },
+  { id: 'r9', label: '駐輪場の清掃・整理', detail: '清掃・チェック・警告・移動' },
+  { id: 'r10', label: '警告ランプ類のチェック', detail: 'チェック' },
+  { id: 'r11', label: '一般ゴミ・資源ゴミ分類', detail: '分類' },
+];
+const monthlyTaskDefs = [
+  { id: 'm1', label: '敷地回り・側構内清掃' },
+  { id: 'm2', label: 'エントランス外側 タイル水洗い' },
+  { id: 'm3', label: '1Fエントランスホールモップふき' },
+  { id: 'm4', label: 'エントランス回りガラス掃除' },
+  { id: 'm5', label: 'エントランス屋根上 ゴミ取り・清掃' },
+  { id: 'm6', label: '各部屋前面ドア・類のふき掃除' },
+  { id: 'm7', label: '照明チェックとふき掃除・交換' },
+  { id: 'm8', label: '植込内のゴミ拾い・雑草取り（西・エントランス横・中庭）' },
+];
+
+let state = { regular: {}, monthly: {} };
+let history = [];
+let draftSaveTimer = null;
+
+// Storage - uses localStorage for GitHub Pages deployment
+function loadFromStorage() {
+  try {
+    const dr = localStorage.getItem('cleaning-draft');
+    if (dr) restoreDraft(JSON.parse(dr));
+  } catch(e) {}
+  try {
+    const hr = localStorage.getItem('cleaning-history');
+    if (hr) history = JSON.parse(hr);
+  } catch(e) { history = []; }
+  updateHistoryBadge();
+}
+function saveDraftStorage(data) {
+  try { localStorage.setItem('cleaning-draft', JSON.stringify(data)); } catch(e) {}
+}
+function clearDraftStorage() {
+  try { localStorage.removeItem('cleaning-draft'); } catch(e) {}
+}
+function saveHistoryStorage() {
+  try { localStorage.setItem('cleaning-history', JSON.stringify(history)); } catch(e) {}
+  updateHistoryBadge();
+}
+
+function saveDraft() {
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    const d = gatherFormData();
+    const has = d.reporter || d.startTime || d.endTime ||
+      Object.values(state.regular).some(v=>v) || Object.values(state.monthly).some(v=>v) ||
+      d.damageReport || d.bikeReport || d.otherReport;
+    if (has) {
+      saveDraftStorage(d);
+      document.getElementById('draftBanner').classList.add('show');
+    }
+  }, 800);
+}
+
+function gatherFormData() {
+  return {
+    date: document.getElementById('reportDate').value,
+    weather: (document.querySelector('.weather-btn.active')||{}).dataset?.weather||'',
+    reporter: document.getElementById('reporter').value,
+    startTime: document.getElementById('startTime').value,
+    endTime: document.getElementById('endTime').value,
+    regular: {...state.regular}, monthly: {...state.monthly},
+    damageReport: document.getElementById('damageReport').value,
+    bikeReport: document.getElementById('bikeReport').value,
+    otherReport: document.getElementById('otherReport').value,
+  };
+}
+
+function restoreDraft(draft) {
+  if (draft.date) document.getElementById('reportDate').value = draft.date;
+  if (draft.weather) document.querySelectorAll('.weather-btn').forEach(b => b.classList.toggle('active', b.dataset.weather===draft.weather));
+  if (draft.reporter) document.getElementById('reporter').value = draft.reporter;
+  if (draft.startTime) document.getElementById('startTime').value = draft.startTime;
+  if (draft.endTime) document.getElementById('endTime').value = draft.endTime;
+  if (draft.regular) state.regular = draft.regular;
+  if (draft.monthly) state.monthly = draft.monthly;
+  if (draft.damageReport) document.getElementById('damageReport').value = draft.damageReport;
+  if (draft.bikeReport) document.getElementById('bikeReport').value = draft.bikeReport;
+  if (draft.otherReport) document.getElementById('otherReport').value = draft.otherReport;
+  renderRegularTasks(); renderMonthlyTasks();
+  const has = draft.reporter||draft.startTime||draft.endTime||Object.values(draft.regular||{}).some(v=>v)||Object.values(draft.monthly||{}).some(v=>v)||draft.damageReport||draft.bikeReport||draft.otherReport;
+  if (has) document.getElementById('draftBanner').classList.add('show');
+}
+
+function clearDraft() {
+  if (!confirm('下書きを破棄しますか？')) return;
+  clearDraftStorage();
+  document.getElementById('draftBanner').classList.remove('show');
+  doResetForm();
+  showToast('下書きを破棄しました');
+}
+
+function showHistory() {
+  document.getElementById('formView').classList.remove('active');
+  document.getElementById('historyView').classList.add('active');
+  document.getElementById('formBottomBar').style.display = 'none';
+  document.getElementById('historyBottomBar').style.display = 'flex';
+  document.getElementById('headerTitle').textContent = '📁 報告履歴';
+  document.getElementById('headerSubtitle').textContent = history.length + '件の記録';
+  document.getElementById('historyBtn').innerHTML = '✏️';
+  document.getElementById('historyBtn').onclick = showForm;
+  document.getElementById('draftBanner').style.display = 'none';
+  renderHistory();
+  window.scrollTo(0,0);
+}
+
+function showForm() {
+  document.getElementById('historyView').classList.remove('active');
+  document.getElementById('formView').classList.add('active');
+  document.getElementById('formBottomBar').style.display = 'flex';
+  document.getElementById('historyBottomBar').style.display = 'none';
+  document.getElementById('headerTitle').textContent = '📋 業務報告シート';
+  document.getElementById('headerSubtitle').textContent = 'マンション清掃管理';
+  document.getElementById('historyBtn').innerHTML = '📁<span class="badge" id="historyBadge" style="display:none">0</span>';
+  document.getElementById('historyBtn').onclick = showHistory;
+  document.getElementById('draftBanner').style.display = '';
+  updateHistoryBadge();
+  window.scrollTo(0,0);
+}
+
+function renderHistory() {
+  const c = document.getElementById('historyList');
+  if (!history.length) {
+    c.innerHTML = '<div class="history-empty"><div class="empty-icon">📋</div><p>まだ報告履歴がありません</p><p style="margin-top:8px;font-size:14px;color:var(--text-light);">報告書を作成すると、ここに記録されます</p></div>';
+    return;
+  }
+  const groups = {};
+  history.forEach((h,i) => {
+    const d = new Date(h.date||h.savedAt);
+    const key = d.getFullYear() + '年' + (d.getMonth()+1) + '月';
+    if (!groups[key]) groups[key]=[];
+    groups[key].push({...h, _index:i});
+  });
+  const wmap = {'晴れ':'☀️','曇り':'☁️','雨':'🌧️','雪':'❄️'};
+  const days = ['日','月','火','水','木','金','土'];
+  let html = '';
+  for (const [month, items] of Object.entries(groups)) {
+    html += '<div class="month-header">' + month + '</div>';
+    items.forEach(h => {
+      const d = h.date ? new Date(h.date) : null;
+      const ds = d ? (d.getMonth()+1) + '/' + d.getDate() + '（' + days[d.getDay()] + '）' : '日付なし';
+      const rc = Object.values(h.regular||{}).filter(v=>v).length;
+      const mc = Object.values(h.monthly||{}).filter(v=>v).length;
+      const notes = h.damageReport||h.bikeReport||h.otherReport;
+      html += '<div class="history-card" onclick="showDetail(' + h._index + ')">' +
+        '<div class="history-card-header"><span class="history-date">' + ds + '</span><span class="history-weather">' + (wmap[h.weather]||'') + '</span></div>' +
+        '<div class="history-card-body">' +
+        '<div class="history-stat"><span class="history-stat-value">' + rc + '/11</span><span class="history-stat-label">毎回</span></div>' +
+        '<div class="history-stat"><span class="history-stat-value">' + mc + '/8</span><span class="history-stat-label">月次</span></div>' +
+        '<span class="history-time">' + (h.startTime||'') + (h.startTime&&h.endTime?' ~ ':'') + (h.endTime||'') + '</span></div>' +
+        '<div class="history-card-footer">' + (notes?'<span class="has-notes">📝 報告事項あり</span>':'<span></span>') +
+        '<button class="delete-btn" onclick="event.stopPropagation();deleteHistory(' + h._index + ')">削除</button></div></div>';
+    });
+  }
+  c.innerHTML = html;
+}
+
+function showDetail(idx) {
+  const h = history[idx]; if (!h) return;
+  const d = h.date ? new Date(h.date) : null;
+  const days = ['日','月','火','水','木','金','土'];
+  const ds = d ? d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日（' + days[d.getDay()] + '）' : '日付なし';
+  const wmap = {'晴れ':'☀️ 晴れ','曇り':'☁️ 曇り','雨':'🌧️ 雨','雪':'❄️ 雪'};
+  let html = '<div class="overlay-header"><h2>' + ds + '</h2><button class="close-btn" onclick="closeDetail()">✕</button></div>' +
+    '<div style="overflow-y:auto; padding-bottom:20px;">' +
+    '<div class="detail-section"><div class="detail-section-title">基本情報</div>' +
+    '<div class="detail-row"><span class="label">天候</span><span class="value">' + (wmap[h.weather]||'―') + '</span></div>' +
+    '<div class="detail-row"><span class="label">報告者</span><span class="value">' + (h.reporter||'―') + '</span></div>' +
+    '<div class="detail-row"><span class="label">清掃時間</span><span class="value">' + (h.startTime||'―') + ' ～ ' + (h.endTime||'―') + '</span></div></div>' +
+    '<div class="detail-section"><div class="detail-section-title">毎回の業務</div>';
+  regularTaskDefs.forEach(t => { html += '<div class="detail-task"><span class="icon">' + (h.regular&&h.regular[t.id]?'✅':'⬜') + '</span><span>' + t.label + '</span></div>'; });
+  html += '</div><div class="detail-section"><div class="detail-section-title">マンスリー業務</div>';
+  monthlyTaskDefs.forEach(t => { html += '<div class="detail-task"><span class="icon">' + (h.monthly&&h.monthly[t.id]?'✅':'⬜') + '</span><span>' + t.label + '</span></div>'; });
+  html += '</div>';
+  if (h.damageReport||h.bikeReport||h.otherReport) {
+    html += '<div class="detail-section"><div class="detail-section-title">報告事項</div>';
+    if (h.damageReport) html += '<div style="font-size:14px;color:var(--text-light);margin-bottom:6px;font-weight:600;">特別な汚れ・破損</div><div class="detail-note">' + esc(h.damageReport) + '</div>';
+    if (h.bikeReport) html += '<div style="font-size:14px;color:var(--text-light);margin-top:16px;margin-bottom:6px;font-weight:600;">駐輪違反車</div><div class="detail-note">' + esc(h.bikeReport) + '</div>';
+    if (h.otherReport) html += '<div style="font-size:14px;color:var(--text-light);margin-top:16px;margin-bottom:6px;font-weight:600;">その他</div><div class="detail-note">' + esc(h.otherReport) + '</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  document.getElementById('detailContent').innerHTML = html;
+  document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail() { document.getElementById('detailOverlay').classList.remove('show'); }
+
+function deleteHistory(idx) {
+  if (!confirm('この記録を削除しますか？')) return;
+  history.splice(idx,1);
+  saveHistoryStorage();
+  renderHistory();
+  document.getElementById('headerSubtitle').textContent = history.length + '件の記録';
+  showToast('削除しました');
+}
+
+function updateHistoryBadge() {
+  const b = document.getElementById('historyBadge');
+  if (!b) return;
+  if (history.length > 0) { b.style.display='flex'; b.textContent=history.length; }
+  else { b.style.display='none'; }
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+function renderRegularTasks() {
+  document.getElementById('regularTasks').innerHTML = regularTaskDefs.map(t =>
+    '<div class="check-item ' + (state.regular[t.id]?'checked':'') + '" onclick="toggleRegular(\'' + t.id + '\')">' +
+    '<div class="check-box">' + (state.regular[t.id]?'✓':'') + '</div>' +
+    '<div><div class="check-label">' + t.label + '</div><div class="check-detail">' + t.detail + '</div></div></div>'
+  ).join('');
+  updateProgress('regular');
+}
+function renderMonthlyTasks() {
+  document.getElementById('monthlyTasks').innerHTML = monthlyTaskDefs.map(t =>
+    '<div class="check-item ' + (state.monthly[t.id]?'checked':'') + '" onclick="toggleMonthly(\'' + t.id + '\')">' +
+    '<div class="check-box">' + (state.monthly[t.id]?'✓':'') + '</div>' +
+    '<div class="check-label">' + t.label + '</div></div>'
+  ).join('');
+  updateProgress('monthly');
+}
+function toggleRegular(id) { state.regular[id]=!state.regular[id]; renderRegularTasks(); saveDraft(); }
+function toggleMonthly(id) { state.monthly[id]=!state.monthly[id]; renderMonthlyTasks(); saveDraft(); }
+function updateProgress(type) {
+  const tasks = type==='regular'?regularTaskDefs:monthlyTaskDefs;
+  const n = tasks.filter(t=>state[type][t.id]).length;
+  document.getElementById(type + 'Progress').style.width = Math.round(n/tasks.length*100)+'%';
+  document.getElementById(type + 'Count').textContent = n + '/' + tasks.length;
+}
+function selectWeather(el) {
+  document.querySelectorAll('.weather-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active'); saveDraft();
+}
+function setNow(id) {
+  const n=new Date();
+  document.getElementById(id).value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  saveDraft();
+}
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+function doResetForm() {
+  state={regular:{},monthly:{}};
+  ['reportDate','reporter','startTime','endTime','damageReport','bikeReport','otherReport'].forEach(function(id){document.getElementById(id).value='';});
+  document.querySelectorAll('.weather-btn').forEach(function(b){b.classList.remove('active');});
+  renderRegularTasks(); renderMonthlyTasks(); initDefaults();
+}
+function resetForm() {
+  if (!confirm('入力内容をリセットしますか？')) return;
+  doResetForm(); clearDraftStorage();
+  document.getElementById('draftBanner').classList.remove('show');
+  showToast('リセットしました');
+}
+
+function generateReport() {
+  var canvas=document.getElementById('reportCanvas'), ctx=canvas.getContext('2d'), W=800;
+  // デバイスのピクセル比率を考慮してくっきり描画する設定
+  const scale = 2; // より高解像度で生成
+  canvas.width = W * scale;
+  
+  var data=gatherFormData();
+  var dateStr='';
+  if (data.date) { var d=new Date(data.date), days=['日','月','火','水','木','金','土']; dateStr=d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日（'+days[d.getDay()]+'）'; }
+
+  var hasReports=data.damageReport||data.bikeReport||data.otherReport;
+  var totalH=700;
+  if (hasReports) {
+    ctx.font = '16px "Noto Sans JP", sans-serif'; 
+    if (data.damageReport) totalH+=40+wrapText(ctx,data.damageReport,W-100,16).length*28;
+    if (data.bikeReport) totalH+=40+wrapText(ctx,data.bikeReport,W-100,16).length*28;
+    if (data.otherReport) totalH+=40+wrapText(ctx,data.otherReport,W-100,16).length*28;
+    totalH+=80;
+  }
+  canvas.height = totalH * scale;
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle='#FFF'; ctx.fillRect(0,0,W,totalH);
+
+  var M=40, cW=W-M*2, y=0;
+  function dR(x,ry,w,h,c, r){
+      ctx.fillStyle=c;
+      ctx.beginPath();
+      ctx.roundRect(x, ry, w, h, r || 0);
+      ctx.fill();
+  }
+  function dT(t,x,ty,s,c,a,w){s=s||16;c=c||'#2B2B2B';a=a||'left';w=w||'normal';ctx.fillStyle=c;ctx.font=w+' '+s+'px "Noto Sans JP",sans-serif';ctx.textAlign=a;ctx.fillText(t,x,ty);ctx.textAlign='left';}
+  function dL(x1,y1,x2,y2,c,w){c=c||'#CCC';w=w||1;ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+
+  // Header
+  dR(0,0,W,90,'#2D6A4F'); 
+  dT('📝 業務報告シート',W/2,55,28,'#FFF','center','bold'); 
+  y=120;
+
+  // 基本情報
+  dR(M,y,cW,44,'#E9F5F0', 8); 
+  dT('📅 基本情報',M+16,y+30,18,'#1B4332','left','bold'); 
+  y+=60;
+  
+  var infoItems=[['日付',dateStr||'未入力'],['天候',data.weather||'未入力'],['報告者',data.reporter||'未入力'],['清掃時間',(data.startTime&&data.endTime)?data.startTime+' ～ '+data.endTime:'未入力']];
+  infoItems.forEach(function(item){
+      dT(item[0]+'：',M+16,y+20,16,'#6B7280');
+      dT(item[1],M+120,y+20,18,'#2B2B2B','left','bold');
+      y+=36;
+  });
+  y+=10; dL(M,y,W-M,y,'#2D6A4F',3); y+=30;
+
+  // 毎回の業務
+  var rc=regularTaskDefs.filter(function(t){return data.regular[t.id];}).length;
+  dR(M,y,cW,44,'#E9F5F0', 8); 
+  dT('✅ 毎回の業務',M+16,y+30,18,'#1B4332','left','bold'); 
+  dT(rc+' / '+regularTaskDefs.length,W-M-16,y+30,16,'#6B7280','right'); 
+  y+=60;
+  
+  regularTaskDefs.forEach(function(t){
+      var ck=data.regular[t.id];
+      // Checkbox box
+      dR(M+16, y+2, 22, 22, ck?'#2D6A4F':'#F0F0F0', 4);
+      if(ck) { dT('✓', M+20, y+19, 18, '#FFF', 'left', 'bold'); }
+      
+      dT(t.label,M+52,y+20,16,ck?'#2B2B2B':'#9CA3AF', 'left', ck?'bold':'normal');
+      dT(t.detail,W-M-16,y+20,14,'#9CA3AF','right');
+      y+=38;
+  });
+  y+=10; dL(M,y,W-M,y,'#2D6A4F',3); y+=30;
+
+  // マンスリー業務
+  var mc=monthlyTaskDefs.filter(function(t){return data.monthly[t.id];}).length;
+  dR(M,y,cW,44,'#E9F5F0', 8); 
+  dT('📆 マンスリー業務',M+16,y+30,18,'#1B4332','left','bold'); 
+  dT(mc+' / '+monthlyTaskDefs.length,W-M-16,y+30,16,'#6B7280','right'); 
+  y+=60;
+  
+  monthlyTaskDefs.forEach(function(t){
+      var ck=data.monthly[t.id];
+      dR(M+16, y+2, 22, 22, ck?'#2D6A4F':'#F0F0F0', 4);
+      if(ck) { dT('✓', M+20, y+19, 18, '#FFF', 'left', 'bold'); }
+
+      dT(t.label,M+52,y+20,16,ck?'#2B2B2B':'#9CA3AF', 'left', ck?'bold':'normal');
+      y+=38;
+  });
+  y+=10;
+
+  // 報告事項
+  if (hasReports) {
+    dL(M,y,W-M,y,'#2D6A4F',3); y+=30;
+    dR(M,y,cW,44,'#FFF0F0', 8); // ちょっと目立つ色に
+    dT('📝 報告事項',M+16,y+30,18,'#D00000','left','bold'); 
+    y+=60;
+    
+    var reps=[[data.damageReport,'特別な汚れ・破損'],[data.bikeReport,'駐輪違反車'],[data.otherReport,'その他']];
+    reps.forEach(function(r){
+      if(!r[0])return;
+      dT('■ '+r[1]+'：',M+16,y+20,15,'#6B7280', 'left', 'bold');y+=32;
+      
+      // テキストの背景
+      var lines = wrapText(ctx,r[0],cW-40,16);
+      dR(M+16, y, cW-32, lines.length*28 + 16, '#FAFAFA', 8);
+      
+      lines.forEach(function(l){dT(l,M+30,y+24,16,'#2B2B2B');y+=28;});
+      y+=24;
+    });
+  }
+  y+=20;dL(M,y,W-M,y,'#E5E1DB');y+=30;
+  dT('作成日時: '+new Date().toLocaleString('ja-JP'),W/2,y+10,14,'#9CA3AF','center');
+  y+=40;
+  
+  // 最終的な高さを調整
+  var finalImg = ctx.getImageData(0,0,W*scale, y*scale);
+  canvas.height = y*scale;
+  ctx.putImageData(finalImg,0,0);
+
+  // プレビュー用にCSS幅を設定（高解像度キャンバスを画面に収めるため）
+  canvas.style.width = "100%";
+  canvas.style.height = "auto";
+
+  history.unshift(Object.assign({},data,{savedAt:new Date().toISOString()}));
+  saveHistoryStorage();
+  clearDraftStorage();
+  document.getElementById('draftBanner').classList.remove('show');
+  document.getElementById('previewOverlay').classList.add('show');
+}
+
+function wrapText(ctx,text,maxW,fs){ctx.font=fs+'px "Noto Sans JP",sans-serif';var lines=[];text.split('\n').forEach(function(p){if(!p){lines.push('');return;}var c='';for(var i=0;i<p.length;i++){var t=c+p[i];if(ctx.measureText(t).width>maxW&&c){lines.push(c);c=p[i];}else c=t;}if(c)lines.push(c);});return lines;}
+function closePreview(){document.getElementById('previewOverlay').classList.remove('show');}
+
+function downloadReport(){
+  var c=document.getElementById('reportCanvas'),l=document.createElement('a');
+  var dv=document.getElementById('reportDate').value;
+  l.download='業務報告_'+(dv||new Date().toISOString().slice(0,10)).replace(/-/g,'')+'.png';
+  l.href=c.toDataURL('image/png');
+  l.click();
+  showToast('画像を保存しました！');
+  // LINE送信ボタンを目立たせるなどしても良い
+}
+
+function openLine(){
+    // LINEアプリを開く
+    // iOS/AndroidでLINEがインストールされていれば開く
+    window.location.href = "https://line.me/R/nv/chat"; 
+    // もしくはメッセージつきでシェアするなら：
+    // window.location.href = "https://line.me/R/msg/text/?清掃業務報告です。画像をお送りします。";
+}
+
+function initDefaults(){var t=new Date();document.getElementById('reportDate').value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}
+
+initDefaults(); renderRegularTasks(); renderMonthlyTasks(); loadFromStorage();
+</script>
+</body>
+</html>
