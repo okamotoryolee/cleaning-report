@@ -554,12 +554,13 @@
       <button class="close-btn" onclick="closePreview()">✕</button>
     </div>
     <div class="preview-container">
-      <canvas id="reportCanvas"></canvas>
-      <p style="margin-top: 12px; font-size: 13px; color: var(--text-light);">※この画像が保存されます</p>
+      <canvas id="reportCanvas" style="display:none;"></canvas>
+      <img id="reportImage" style="width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+      <p style="margin-top: 12px; font-size: 14px; color: var(--danger); font-weight:bold;">※ 画像を強めに長押しして保存もできます</p>
     </div>
-    <div class="overlay-actions">
-      <button class="btn btn-download" onclick="downloadReport()">📥 1. 画像をスマホに保存</button>
-      <button class="btn btn-line" onclick="openLine()">💬 2. LINEを開いて送る</button>
+    <div class="overlay-actions" style="gap: 8px;">
+      <button class="btn btn-line" onclick="shareReport()" style="font-size:16px;">📤 LINE等で送る / 保存する</button>
+      <div style="text-align:center; font-size:12px; color:var(--text-light);">（※ボタンが効かない場合は画像を長押ししてください）</div>
     </div>
   </div>
 </div>
@@ -952,9 +953,8 @@ function generateReport() {
   canvas.height = y*scale;
   ctx.putImageData(finalImg,0,0);
 
-  // プレビュー用にCSS幅を設定（高解像度キャンバスを画面に収めるため）
-  canvas.style.width = "100%";
-  canvas.style.height = "auto";
+  // プレビュー用の画像タグに書き出し（長押し保存できるようにするため）
+  document.getElementById('reportImage').src = canvas.toDataURL('image/png');
 
   history.unshift(Object.assign({},data,{savedAt:new Date().toISOString()}));
   saveHistoryStorage();
@@ -966,22 +966,36 @@ function generateReport() {
 function wrapText(ctx,text,maxW,fs){ctx.font=fs+'px "Noto Sans JP",sans-serif';var lines=[];text.split('\n').forEach(function(p){if(!p){lines.push('');return;}var c='';for(var i=0;i<p.length;i++){var t=c+p[i];if(ctx.measureText(t).width>maxW&&c){lines.push(c);c=p[i];}else c=t;}if(c)lines.push(c);});return lines;}
 function closePreview(){document.getElementById('previewOverlay').classList.remove('show');}
 
-function downloadReport(){
-  var c=document.getElementById('reportCanvas'),l=document.createElement('a');
-  var dv=document.getElementById('reportDate').value;
-  l.download='業務報告_'+(dv||new Date().toISOString().slice(0,10)).replace(/-/g,'')+'.png';
-  l.href=c.toDataURL('image/png');
-  l.click();
-  showToast('画像を保存しました！');
-  // LINE送信ボタンを目立たせるなどしても良い
+function dataURLtoFile(dataurl, filename) {
+    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+    return new File([u8arr], filename, {type:mime});
 }
 
-function openLine(){
-    // LINEアプリを開く
-    // iOS/AndroidでLINEがインストールされていれば開く
-    window.location.href = "https://line.me/R/nv/chat"; 
-    // もしくはメッセージつきでシェアするなら：
-    // window.location.href = "https://line.me/R/msg/text/?清掃業務報告です。画像をお送りします。";
+async function shareReport(){
+  var dv=document.getElementById('reportDate').value;
+  var filename='業務報告_'+(dv||new Date().toISOString().slice(0,10)).replace(/-/g,'')+'.png';
+  var imgStr=document.getElementById('reportImage').src;
+  
+  if (navigator.canShare) {
+      try {
+          var file = dataURLtoFile(imgStr, filename);
+          if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                  files: [file]
+              });
+              return;
+          }
+      } catch(e) { console.log(e); }
+  }
+  
+  // 共有APIが使えない場合は直接ダウンロード
+  var l=document.createElement('a');
+  l.download=filename;
+  l.href=imgStr;
+  l.click();
+  showToast('画像を保存しました。メニューから送ってください');
 }
 
 function initDefaults(){var t=new Date();document.getElementById('reportDate').value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}
